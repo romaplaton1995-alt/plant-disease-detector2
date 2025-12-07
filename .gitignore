@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.env
+.venv/
+venv/
+ENV/
+
+# Large files (исключаем все большие файлы)
+models/*.pth
+models/*.pt
+models/*.h5
+models/resnet50_weights/*.pth
+*.whl
+data/
+results/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Docker
+.dockerenv
+docker/
+
+# Uploads
+app/static/uploads/
+
+# Tests
+test_*.jpg
+test_*.png
+test_*.py
+
+# System
+Thumbs.db

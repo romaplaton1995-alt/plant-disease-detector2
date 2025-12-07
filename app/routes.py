@@ -1,0 +1,60 @@
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+import os
+from werkzeug.utils import secure_filename
+from .model_loader import predict_disease
+
+main_bp = Blueprint('main', __name__)
+
+
+def allowed_file(filename):
+    """Проверяет допустимые расширения файлов"""
+    return '.' in filename and \
+        filename.rsplit('.', 1)[1].lower() in current_app.config['ALLOWED_EXTENSIONS']
+
+
+@main_bp.route('/')
+def index():
+    """Главная страница с формой загрузки изображения"""
+    return render_template('index.html')
+
+
+@main_bp.route('/predict', methods=['POST'])
+def predict():
+    """Обработка загруженного изображения и предсказание"""
+    # Проверка наличия файла в запросе
+    if 'file' not in request.files:
+        flash('No file part in the request')
+        return redirect(request.url)
+
+    file = request.files['file']
+
+    # Проверка, что файл выбран
+    if file.filename == '':
+        flash('No file selected')
+        return redirect(request.url)
+
+    # Проверка допустимого расширения
+    if file and allowed_file(file.filename):
+        # Безопасное имя файла
+        filename = secure_filename(file.filename)
+        filepath = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
+
+        # Сохранение файла
+        file.save(filepath)
+
+        # Выполнение предсказания
+        result = predict_disease(current_app.model, filepath)
+
+        if 'error' in result:
+            flash(f'Error during prediction: {result["error"]}')
+            return redirect(request.url)
+
+        # Генерация URL для изображения
+        image_url = url_for('static', filename=f'uploads/{filename}')
+
+        return render_template('result.html',
+                               result=result,
+                               image_url=image_url)
+
+    flash('Invalid file type. Please upload PNG or JPG images only.')
+    return redirect(request.url)

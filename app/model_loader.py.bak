@@ -1,0 +1,105 @@
+import torch
+import torchvision
+from torchvision import transforms
+import os
+import numpy as np
+from PIL import Image
+
+
+def load_model():
+    """Загружает обученную ResNet50 модель для инференса"""
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"🚀 Using device: {device}")
+
+    # Загрузка архитектуры ResNet50
+    model = torchvision.models.resnet50(weights=None)
+
+    # Загрузка предобученных весов для базовой архитектуры
+    base_weights_path = "models/resnet50_weights/resnet50-11ad3fa6.pth"
+    if os.path.exists(base_weights_path):
+        print(f"✅ Loading base weights from: {base_weights_path}")
+        base_weights = torch.load(base_weights_path, map_location=device)
+        model.load_state_dict(base_weights, strict=False)
+
+    # Замена классификатора на обученный
+    num_classes = 15  # Ваше количество классов
+    num_ftrs = model.fc.in_features
+    model.fc = torch.nn.Sequential(
+        torch.nn.Linear(num_ftrs, 1024),
+        torch.nn.ReLU(),
+        torch.nn.Dropout(0.5),
+        torch.nn.Linear(1024, 512),
+        torch.nn.ReLU(),
+        torch.nn.Dropout(0.3),
+        torch.nn.Linear(512, num_classes)
+    )
+
+    # Загрузка обученных весов модели
+    model_path = "models/plant_disease_resnet50_best.pth"
+    if not os.path.exists(model_path):
+        raise FileNotFoundError(f"Model file not found at {model_path}")
+
+    print(f"🔄 Loading trained model weights from: {model_path}")
+    state_dict = torch.load(model_path, map_location=device)
+    model.load_state_dict(state_dict)
+
+    # Перемещение на GPU и установка в eval режим
+    model = model.to(device)
+    model.eval()
+
+    print("✅ Model loaded and ready for inference!")
+    return model
+
+
+def get_transforms():
+    """Возвращает преобразования для изображений"""
+    return transforms.Compose([
+        transforms.Resize(256),
+        transforms.CenterCrop(224),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    ])
+
+
+def predict_disease(model, image_path):
+    """Выполняет предсказание болезни на изображении растения"""
+    device = next(model.parameters()).device
+
+    try:
+        # Загрузка и преобразование изображения
+        img = Image.open(image_path).convert('RGB')
+        transform = get_transforms()
+        img_tensor = transform(img).unsqueeze(0).to(device)
+
+        # Предсказание
+        with torch.no_grad():
+            output = model(img_tensor)
+            probabilities = torch.nn.functional.softmax(output, dim=1)
+            confidence, predicted_idx = torch.max(probabilities, 1)
+
+        # Получение названия класса
+        class_names = [
+            'Pepper__bell___Bacterial_spot', 'Pepper__bell___healthy', 'Potato___Early_blight',
+            'Potato___Late_blight', 'Potato___healthy', 'Tomato_Bacterial_spot',
+            'Tomato_Early_blight', 'Tomato_Late_blight', 'Tomato_Leaf_Mold',
+            'Tomato_Septoria_leaf_spot', 'Tomato_Spider_mites_Two_spotted_spider_mite',
+            'Tomato__Target_Spot', 'Tomato__Tomato_YellowLeaf__Curl_Virus',
+            'Tomato__Tomato_mosaic_virus', 'Tomato_healthy'
+        ]
+
+        predicted_class = class_names[predicted_idx.item()]
+        confidence_value = confidence.item() * 100
+
+        # Форматирование названия для отображения
+        display_name = predicted_class.replace('__', ' - ').replace('_', ' ').replace(' -  ', ' - ')
+
+        return {
+            'class': predicted_class,
+            'display_name': display_name,
+            'confidence': confidence_value,
+            'probabilities': probabilities.cpu().numpy()[0].tolist(),
+            'all_classes': class_names
+        }
+
+    except Exception as e:
+        return {'error': str(e)}

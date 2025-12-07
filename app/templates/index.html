@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌱 Детектор болезней растений</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #66cc99 0%, #339966 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .card {
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease;
+            background: white;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+        }
+        .card-header {
+            background: linear-gradient(135deg, #339966 0%, #227755 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            padding: 12px 30px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+        .btn-success:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(32, 201, 151, 0.4);
+        }
+        .preview-container {
+            text-align: center;
+            margin: 20px 0;
+            padding: 20px;
+            border: 2px dashed #28a745;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.1);
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            display: none;
+        }
+        .instructions {
+            background: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+            border-left: 4px solid #28a745;
+        }
+        .supported-plants {
+            background: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 15px 0;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+        }
+        .plant-item {
+            text-align: center;
+            padding: 10px;
+            margin: 5px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+        .plant-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .plant-icon {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            font-size: 32px;
+            color: white;
+        }
+        .leaf-icon { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow-lg">
+                    <div class="card-header text-center py-4">
+                        <h1 class="display-4 fw-bold">
+                            <i class="fas fa-seedling me-2"></i>Детектор болезней растений
+                        </h1>
+                        <p class="lead mb-0">Загрузите фото листа растения для определения болезни</p>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="preview-container">
+                            <img id="imagePreview" class="preview-image" src="" alt="Preview">
+                            <p class="text-muted mb-0" id="previewText">Предпросмотр изображения появится здесь</p>
+                        </div>
+
+                        <form method="POST" action="/predict" enctype="multipart/form-data" id="uploadForm">
+                            <div class="mb-4">
+                                <label for="file" class="form-label fw-bold fs-5">
+                                    <i class="fas fa-image me-2"></i>Выберите изображение растения
+                                </label>
+                                <input class="form-control form-control-lg" type="file" id="file" name="file" accept="image/*" required onchange="previewImage()">
+                                <div class="form-text text-muted">
+                                    Поддерживаются форматы: JPG, JPEG, PNG. Максимальный размер: 16MB
+                                </div>
+                            </div>
+
+                            <div class="instructions">
+                                <h5 class="fw-bold mb-2"><i class="fas fa-info-circle me-2"></i>Как это работает:</h5>
+                                <ul class="mb-0">
+                                    <li>Наша нейросеть анализирует изображение листа растения</li>
+                                    <li>Определяет 15 различных классов болезней и здоровых растений</li>
+                                    <li>Показывает вероятность каждого диагноза</li>
+                                    <li>Точность предсказаний: 95.96%</li>
+                                </ul>
+                            </div>
+
+                            <div class="supported-plants">
+                                <h5 class="fw-bold mb-3 text-center">
+                                    <i class="fas fa-leaf me-2 text-success"></i>Поддерживаемые растения
+                                </h5>
+                                <div class="row text-center">
+                                    <div class="col-md-4 mb-3">
+                                        <div class="plant-item">
+                                            <div class="plant-icon leaf-icon">
+                                                <i class="fas fa-leaf"></i>
+                                            </div>
+                                            <h6 class="fw-bold mb-0">Перец</h6>
+                                            <small class="text-muted">сладкий/острый</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="plant-item">
+                                            <div class="plant-icon leaf-icon">
+                                                <i class="fas fa-leaf"></i>
+                                            </div>
+                                            <h6 class="fw-bold mb-0">Картофель</h6>
+                                            <small class="text-muted">обычный/сладкий</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <div class="plant-item">
+                                            <div class="plant-icon leaf-icon">
+                                                <i class="fas fa-leaf"></i>
+                                            </div>
+                                            <h6 class="fw-bold mb-0">Помидоры</h6>
+                                            <small class="text-muted">черри/обычные</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Важно:</strong> Приложение обучено распознавать болезни только у этих растений.
+                                    Загрузка изображений других культур может дать некорректные результаты.
+                                </div>
+                            </div>
+
+                            <div class="d-grid mt-4">
+                                <button type="submit" class="btn btn-success btn-lg py-3">
+                                    <i class="fas fa-search me-2"></i>Определить болезнь
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="card-footer text-center text-muted py-3">
+                        <small>
+                            <i class="fas fa-brain me-1"></i>На основе ResNet50 с точностью 95.96% |
+                            <i class="fas fa-leaf me-1"></i>Проект по защите растений
+                        </small>
+                    </div>
+                </div>
+
+                <div class="text-center mt-4">
+                    <a href="#" class="text-white text-decoration-none me-3">
+                        <i class="fab fa-github"></i> GitHub
+                    </a>
+                    <a href="#" class="text-white text-decoration-none">
+                        <i class="fas fa-file-alt"></i> Документация
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function previewImage() {
+            const file = document.getElementById('file').files[0];
+            const preview = document.getElementById('imagePreview');
+            const previewText = document.getElementById('previewText');
+
+            if (file) {
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                    previewText.style.display = 'none';
+                }
+
+                reader.readAsDataURL(file);
+            } else {
+                preview.style.display = 'none';
+                previewText.style.display = 'block';
+            }
+        }
+
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            const fileInput = document.getElementById('file');
+            if (!fileInput.files.length) {
+                e.preventDefault();
+                alert('Пожалуйста, выберите изображение для загрузки!');
+                return;
+            }
+
+            // Показать индикатор загрузки
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Анализируем изображение...';
+            submitBtn.disabled = true;
+        });
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
