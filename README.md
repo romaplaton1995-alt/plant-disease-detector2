@@ -6,7 +6,7 @@ AI-powered веб-приложение для определения болез�
 
 ### 1. Клонирование репозитория
 \`\`\`bash
-git clone https://github.com/romaplaton1995-alt/plant-disease-detector.git
+git clone https://github.com/romaplaton1995-alt/plant-disease-detector2.git
 cd plant-disease-detector
 \`\`\`
 
